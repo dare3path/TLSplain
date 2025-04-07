@@ -41,7 +41,7 @@ and
   
   
 **Pros**
-Seeing such errors might save you some time because you're not chasing ghost possibilities (like wondering what's wrong with your client).  
+- seeing such errors might save you some time because you're not chasing ghost possibilities (like wondering what's wrong with your client).
 
 **Cons**
 - if you've somehow trapped those specific errors before error:0A00010B:SSL and error:0A0000C6:SSL as a way to know if you're connecting to non-TLS server(s) then you'd have to change or add these new ones (depending on the patch), but seen above as: error:0A0007A0:SSL and error:0A00079F:SSL and error:0A0007A1:SSL
