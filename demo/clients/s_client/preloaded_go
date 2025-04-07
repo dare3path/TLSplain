@@ -1,0 +1,29 @@
+#!/usr/bin/bash
+
+
+if ! test "$#" -gt 0; then
+  #args=("s_client" "-connect" "127.0.2.6:3001")
+  arg="6"
+else
+  #args=(${@})
+  arg="$1"
+fi
+reset_colors() {
+  set +x
+#    tput setaf 0  # Reset foreground color
+#    tput setab 0  # Reset background color
+    tput sgr0
+}
+trap reset_colors EXIT ERR
+lib1="/home/user/SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
+lib2="/home/user/SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
+exe="/usr/bin/openssl"
+set -xe
+ls -la -- "${lib1}" "${lib2}" "$exe"
+export LD_PRELOAD="${lib1}:${lib2}"
+ldd -- "$exe"
+#time "$exe" s_client -connect 127.0.2.6:3001
+#time "$exe" ${args[@]}
+tput setaf 2
+time "$exe" s_client -connect "127.0.2.${arg}:3001"
+echo unreachable

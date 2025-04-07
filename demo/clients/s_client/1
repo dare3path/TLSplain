@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+./go 2
+./preloaded_go 2

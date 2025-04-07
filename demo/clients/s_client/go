@@ -1,0 +1,18 @@
+#!/usr/bin/bash
+
+if ! test "$#" -gt 0; then
+  arg="6"
+else
+  arg="$1"
+fi
+reset_colors() {
+  set +x
+#    tput setaf 0  # Reset foreground color
+#    tput setab 0  # Reset background color
+    tput sgr0
+}
+trap reset_colors EXIT ERR
+tput setaf 1
+set -xe
+time openssl s_client -connect "127.0.2.${arg}:3001"
+echo unreachable

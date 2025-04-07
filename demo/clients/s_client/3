@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+./go 6
+./preloaded_go 6
