@@ -18,7 +18,11 @@ and
 >    1: error:0A0000C6:SSL routines:tls_get_more_records:packet length too long:ssl/record/methods/tls_common.c:662:, error:0A000139:SSL routines::record layer failure:ssl/record/rec_layer_s3.c:688:  
 >    2: error:0A0000C6:SSL routines:tls_get_more_records:packet length too long:ssl/record/methods/tls_common.c:662:, error:0A000139:SSL routines::record layer failure:ssl/record/rec_layer_s3.c:688:  
   
-
+and  
+  
+> 803BE1BCC9710000:error:0A000126:SSL routines::unexpected eof while reading:ssl/record/rec_layer_s3.c:688:  
+  
+  
 but **with patch** more descriptive errors:  
   
 > Caused by:  
