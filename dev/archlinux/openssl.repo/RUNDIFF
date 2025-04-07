@@ -1,0 +1,26 @@
+#!/usr/bin/bash
+
+echo 'shows current state of modifs'
+
+# Get the current directory name
+current_dir=$(basename "$PWD")
+# Check if the current directory is "src"
+if [ "$current_dir" != "src" ]; then
+    echo "You must be in the 'src' sub-directory."
+    exit 1
+fi
+
+#$ diff -x 'openssl-3.4.1/Makefile' -x 'openssl-3.4.1/configdata.pm' -uprw openssl-3.4.1.VANILLA  openssl-3.4.1 |grep -v '^Binary files'| grep -v '^Only in' | colordiff|less -R
+
+dir1="openssl-3.4.1.VANILLA"
+dir2="openssl-3.4.1"
+excludes="apps\/srp.c|Makefile|configdata.pm"
+cmd="diff -upr --"
+$cmd "$dir1" "$dir2" | awk '
+  BEGIN { skip = 0 }
+  /^--- '"$dir1"'\/('"$excludes"')/ { skip = 1; next }
+  /^+++ '"$dir2"'\/('"$excludes"')/ { skip = 1; next }
+  skip && /^'"$cmd"'/ { skip = 0 }
+  !skip { print }
+' | grep -v '^Binary files' | grep -v '^Only in'
+# | colordiff | less -R

@@ -1,0 +1,530 @@
+future updates of this patch will be on: https://github.com/dare3path/TLSplain
+
+diff -upr -- openssl-3.4.1.VANILLA/apps/srp.c openssl-3.4.1/apps/srp.c
+diff -upr -- openssl-3.4.1.VANILLA/configdata.pm openssl-3.4.1/configdata.pm
+diff -upr -- openssl-3.4.1.VANILLA/crypto/err/openssl.ec openssl-3.4.1/crypto/err/openssl.ec
+--- openssl-3.4.1.VANILLA/crypto/err/openssl.ec	2025-02-11 15:29:27.000000000 +0100
++++ openssl-3.4.1/crypto/err/openssl.ec	2025-03-30 12:50:44.933460760 +0200
+@@ -79,3 +79,8 @@ R SSL_R_TLSV1_BAD_CERTIFICATE_HASH_VALUE
+ R SSL_R_TLSV1_ALERT_UNKNOWN_PSK_IDENTITY        1115
+ R SSL_R_TLSV13_ALERT_CERTIFICATE_REQUIRED       1116
+ R SSL_R_TLSV1_ALERT_NO_APPLICATION_PROTOCOL     1120
++R SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER 1951
++R SSL_R_ATTEMPTED_TLS_CONNECTION_TO_A_PLAINTEXT_HTTP_SERVER 1952
++R SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER_LESS_THAN_5_BYTES 1953
++
++
+diff -upr -- openssl-3.4.1.VANILLA/crypto/err/openssl.txt openssl-3.4.1/crypto/err/openssl.txt
+--- openssl-3.4.1.VANILLA/crypto/err/openssl.txt	2025-02-11 15:29:27.000000000 +0100
++++ openssl-3.4.1/crypto/err/openssl.txt	2025-03-30 12:50:44.933777416 +0200
+@@ -1321,6 +1321,12 @@ SM2_R_USER_ID_TOO_LARGE:106:user id too
+ SSL_R_APPLICATION_DATA_AFTER_CLOSE_NOTIFY:291:\
+ 	application data after close notify
+ SSL_R_APP_DATA_IN_HANDSHAKE:100:app data in handshake
++SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER_LESS_THAN_5_BYTES:1953:\
++	attempted tls connection to non tls server which replied with less than 5 bytes
++SSL_R_ATTEMPTED_TLS_CONNECTION_TO_A_PLAINTEXT_HTTP_SERVER:1952:\
++	attempted tls connection to a plaintext http server
++SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER:1951:\
++	attempted tls connection to non tls server
+ SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT:272:\
+ 	attempt to reuse session in different context
+ SSL_R_AT_LEAST_TLS_1_2_NEEDED_IN_SUITEB_MODE:158:\
+diff -upr -- openssl-3.4.1.VANILLA/include/openssl/sslerr.h openssl-3.4.1/include/openssl/sslerr.h
+--- openssl-3.4.1.VANILLA/include/openssl/sslerr.h	2025-02-11 15:29:27.000000000 +0100
++++ openssl-3.4.1/include/openssl/sslerr.h	2025-03-30 12:50:44.934207005 +0200
+@@ -23,6 +23,9 @@
+  */
+ # define SSL_R_APPLICATION_DATA_AFTER_CLOSE_NOTIFY        291
+ # define SSL_R_APP_DATA_IN_HANDSHAKE                      100
++# define SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER_LESS_THAN_5_BYTES 1953
++# define SSL_R_ATTEMPTED_TLS_CONNECTION_TO_A_PLAINTEXT_HTTP_SERVER 1952
++# define SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER 1951
+ # define SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT 272
+ # define SSL_R_AT_LEAST_TLS_1_2_NEEDED_IN_SUITEB_MODE     158
+ # define SSL_R_BAD_CERTIFICATE                            348
+diff -upr -- openssl-3.4.1.VANILLA/Makefile openssl-3.4.1/Makefile
+diff -upr -- openssl-3.4.1.VANILLA/ssl/record/methods/tls_common.c openssl-3.4.1/ssl/record/methods/tls_common.c
+--- openssl-3.4.1.VANILLA/ssl/record/methods/tls_common.c	2025-02-11 15:29:27.000000000 +0100
++++ openssl-3.4.1/ssl/record/methods/tls_common.c	2025-03-30 14:00:51.798871307 +0200
+@@ -17,7 +17,12 @@
+ #include "internal/e_os.h"
+ #include "internal/packet.h"
+ #include "internal/ssl3_cbc.h"
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wconversion"
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+ #include "../../ssl_local.h"
++#pragma GCC diagnostic pop
+ #include "../record_local.h"
+ #include "recmethod_local.h"
+ 
+@@ -403,9 +408,15 @@ int tls_default_read_n(OSSL_RECORD_LAYER
+ 
+         clear_sys_error();
+         if (bio != NULL) {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wconversion"
+             ret = BIO_read(bio, pkt + len + left, max - left);
++#pragma GCC diagnostic pop
+             if (ret > 0) {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+                 bioread = ret;
++#pragma GCC diagnostic pop
+                 ret = OSSL_RECORD_RETURN_SUCCESS;
+             } else if (BIO_should_retry(bio)) {
+                 if (rl->prev != NULL) {
+@@ -506,7 +517,10 @@ static int rlayer_early_data_count_ok(OS
+     }
+ 
+     /* If we are dealing with ciphertext we need to allow for the overhead */
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wconversion"
+     max_early_data += overhead;
++#pragma GCC diagnostic pop
+ 
+     if (rl->early_data_count + length > max_early_data) {
+         RLAYERfatal(rl, send ? SSL_AD_INTERNAL_ERROR : SSL_AD_UNEXPECTED_MESSAGE,
+@@ -574,32 +588,108 @@ int tls_get_more_records(OSSL_RECORD_LAY
+     do {
+         thisrr = &rr[num_recs];
+ 
++#if defined(DEBUG) && !defined(NDEBUG)
++  #pragma message("debug is on")
++  #define DBG_printf(...) do { \
++    printf("!!!DBG_printf: " __VA_ARGS__); \
++    } while (0)
++#else
++  #pragma message("non-debug mode")
++#ifdef NDEBUG
++#pragma message("NDEBUG is defined")
++#else
++#pragma message("NDEBUG is not defined")
++#endif
++    #define DBG_printf(...) do { } while (0) // No-op
++#endif
++        DBG_printf("!!!!!!! meh1\n");
+         /* check if we have the header */
+         if ((rl->rstate != SSL_ST_READ_BODY) ||
+             (rl->packet_length < SSL3_RT_HEADER_LENGTH)) {
++            DBG_printf("!!!!!!! meh2\n");
+             size_t sslv2len;
+             unsigned int type;
+ 
++            //this will either read 5 bytes aka SSL3_RT_HEADER_LENGTH, or it will "fail"! won't read 4 or 6 for example.
+             rret = rl->funcs->read_n(rl, SSL3_RT_HEADER_LENGTH,
+                                      TLS_BUFFER_get_len(rbuf), 0,
+                                      num_recs == 0 ? 1 : 0, &n);
+ 
+-            if (rret < OSSL_RECORD_RETURN_SUCCESS)
++            // n is 5 only when it read something(and it's at least 5 bytes) and rl->packet_length is 0 until then; else n is apparently random.
++            /*
++             * static: Persists across calls, stored in .rodata.
++             * const: Can’t be modified.
++             * size_t: Matches memcmp’s third arg type.
++             * sizeof(http_marker) - 1: 6 - 1 = 5, computed at compile time.
++             */
++            static const char http_marker[] = "HTTP/";
++            //^ ie. "HTTP/1.1 200 OK"
++            //^ includes nul char at the end.
++            static const char http_python_server_marker[] = "<!DOC";
++            //^it's "<!DOCTYPE HTML>\n" (\n is newline eg. 0x0A)
++            //$ python3 -m http.server -b 127.0.0.2 8000
++            //it replies to garbage input with HTTP/0.9 fallback which
++            //doesn't include a status line but rather the html body directly,
++            //as per: https://github.com/python/cpython/issues/72734#issuecomment-1093730286
++            //static const size_t http_marker_len = sizeof(http_marker) - 1; // XXX: this hits -Wpedantic as: error: expression in static assertion is not an integer constant expression [-Werror=pedantic], but if it's a #define it's ok.
++            #define http_marker_len sizeof(http_marker) - 1
++            // ^ don't count the nul char.
++            //static const size_t http_python_server_marker_len = sizeof(http_python_server_marker) - 1; //XXX: see above.
++            #define http_python_server_marker_len sizeof(http_python_server_marker) - 1
++            // static asserts run at compile time:
++            _Static_assert(5 == SSL3_RT_HEADER_LENGTH,
++                   "expected SSL3_RT_HEADER_LENGTH to be 5");
++            _Static_assert(http_marker_len == SSL3_RT_HEADER_LENGTH,
++                   "http_marker length must match SSL3_RT_HEADER_LENGTH");
++            _Static_assert(http_python_server_marker_len == SSL3_RT_HEADER_LENGTH,
++                   "http_python_server_marker length must be same as SSL3_RT_HEADER_LENGTH");
++
++            //DBG_printf("!!!!!!! meh3\n");// rret=%d\n",(int)rret);
++            DBG_printf("!!!!!!! pack len: %zu, n=%zu, rret=%d\n", (size_t)rl->packet_length, (size_t)n, (int)rret);
++            if (rl->is_first_record
++                && rl->role == OSSL_RECORD_ROLE_CLIENT
++                //&& rl->packet_length > 0 //XXX: bad because: it can be 0 while retrying(aka non-blocking), but also when OSSL_RECORD_RETURN_FATAL happens!
++                && rret != OSSL_RECORD_RETURN_RETRY // non-blocking waiting for data?, we don't enter the 'if' then!
++                && rl->packet_length < SSL3_RT_HEADER_LENGTH /*5*/ // but it's less than 5
++                //&& 5 == SSL3_RT_HEADER_LENGTH
++               ) {
++              DBG_printf("!!!!!!! couldn't read the minimum of %lld bytes but got less (not %zu tho(well it's possible), and not n=%zu), meaning this isn't a TLS server that you're connecting to.\n", (long long)SSL3_RT_HEADER_LENGTH, (size_t)rl->packet_length, (size_t)n);
++              //DBG_printf("!!!!!!! got %zu bytes\n", (size_t)rl->packet_length);//always 0
++              //DBG_printf("!!!!!!! rret %d bytes\n", (int)rret);//-2 aka OSSL_RECORD_RETURN_FATAL
++              RLAYERfatal(rl, SSL_AD_HANDSHAKE_FAILURE, SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER_LESS_THAN_5_BYTES);
++              return OSSL_RECORD_RETURN_FATAL;//seen in include/internal/recordmethod.h
++            }
++            /*
++             * # define OSSL_RECORD_RETURN_SUCCESS           1
++             * # define OSSL_RECORD_RETURN_RETRY             0
++             * # define OSSL_RECORD_RETURN_NON_FATAL_ERR    -1
++             * # define OSSL_RECORD_RETURN_FATAL            -2
++             * # define OSSL_RECORD_RETURN_EOF              -3
++             */
++            if (rret < OSSL_RECORD_RETURN_SUCCESS) {
++              DBG_printf("!!!!!!! meh4 (error or non-blocking)\n");
+                 return rret; /* error or non-blocking */
++            }
++            //after this point, it for sure read 5 bytes and rt->packet_length is 5, even if more is available.
+ 
+             rl->rstate = SSL_ST_READ_BODY;
+ 
+             p = rl->packet;
++            DBG_printf("!!!!!!! meh5\n");
+             if (!PACKET_buf_init(&pkt, p, rl->packet_length)) {
++                DBG_printf("!!!!!!! meh6\n");
+                 RLAYERfatal(rl, SSL_AD_INTERNAL_ERROR, ERR_R_INTERNAL_ERROR);
+                 return OSSL_RECORD_RETURN_FATAL;
+             }
+             sslv2pkt = pkt;
++            DBG_printf("!!!!!!! meh7\n");
+             if (!PACKET_get_net_2_len(&sslv2pkt, &sslv2len)
+                     || !PACKET_get_1(&sslv2pkt, &type)) {
++                DBG_printf("!!!!!!! meh8\n");
+                 RLAYERfatal(rl, SSL_AD_DECODE_ERROR, ERR_R_INTERNAL_ERROR);
+                 return OSSL_RECORD_RETURN_FATAL;
+             }
++            DBG_printf("!!!!!!! meh9\n");
+             /*
+              * The first record received by the server may be a V2ClientHello.
+              */
+@@ -630,6 +720,7 @@ int tls_get_more_records(OSSL_RECORD_LAY
+             } else {
+                 /* SSLv3+ style record */
+ 
++              DBG_printf("!!!!!!! pack len: %zu\n", (size_t)rl->packet_length);
+                 /* Pull apart the header into the TLS_RL_RECORD */
+                 if (!PACKET_get_1(&pkt, &type)
+                         || !PACKET_get_net_2(&pkt, &version)
+@@ -639,8 +730,35 @@ int tls_get_more_records(OSSL_RECORD_LAY
+                     RLAYERfatal(rl, SSL_AD_DECODE_ERROR, ERR_R_INTERNAL_ERROR);
+                     return OSSL_RECORD_RETURN_FATAL;
+                 }
++                DBG_printf("!!!!!!! Parsed header - type=%02x, version=%04x, length=%zu\n", (int)type, (unsigned int)version, (size_t)thisrr->length); // seen in ssl/record/methods/recmethod_local.h
++
++                /* Set to true if this is the first record in a connection */
++                if (rl->is_first_record && rl->role == OSSL_RECORD_ROLE_CLIENT
++                    && type != SSL3_RT_HANDSHAKE && type != SSL3_RT_ALERT) {
++                  DBG_printf("!!!!! Invalid type=%02x on first record, packet len: %zu\n", (int)type, (size_t)rl->packet_length);
++
++                  /* Check for HTTP response: "HTTP/" */
++                  if (rl->packet_length >= SSL3_RT_HEADER_LENGTH // always true if we're this far.
++                      //&& 5 == SSL3_RT_HEADER_LENGTH // if this changes, logic needs rethinking! eg. the c string needs to be recomputed; ok now statically asserted earlier!
++                      //&& memcmp(rl->packet, "HTTP/", SSL3_RT_HEADER_LENGTH) == 0) { // ie. "HTTP/1.1 200 OK"
++                      && (memcmp(rl->packet, http_marker, http_marker_len) == 0
++                      || memcmp(rl->packet, http_python_server_marker, http_python_server_marker_len) == 0)) {
++                    DBG_printf("!!!!! so you're trying to connect to a plaintext HTTP server like on port 80, which is obviously not TLS server\n");
++                    RLAYERfatal(rl, SSL_AD_HANDSHAKE_FAILURE,
++                        SSL_R_ATTEMPTED_TLS_CONNECTION_TO_A_PLAINTEXT_HTTP_SERVER);
++                  } else {
++                    //the server's clearly not TLS beacause it doesn't say ServerHello or Alert
++                    DBG_printf("!!!!! so you're trying to connect to a non TLS server but it's not a HTTP plaintext server, it's something else.\n");
++                    RLAYERfatal(rl, SSL_AD_HANDSHAKE_FAILURE,
++                        SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER);
++                  }
++                  return OSSL_RECORD_RETURN_FATAL;
++                }
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+                 thisrr->type = type;
+                 thisrr->rec_version = version;
++#pragma GCC diagnostic pop
+ 
+                 /*
+                  * When we call validate_record_header() only records actually
+@@ -654,8 +772,12 @@ int tls_get_more_records(OSSL_RECORD_LAY
+                     return OSSL_RECORD_RETURN_FATAL;
+                 }
+ 
+-                if (rl->msg_callback != NULL)
++                if (rl->msg_callback != NULL) {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+                     rl->msg_callback(0, version, SSL3_RT_HEADER, p, 5, rl->cbarg);
++#pragma GCC diagnostic pop
++                }
+ 
+                 if (thisrr->length >
+                     TLS_BUFFER_get_len(rbuf) - SSL3_RT_HEADER_LENGTH) {
+@@ -874,7 +996,10 @@ int tls_get_more_records(OSSL_RECORD_LAY
+     }
+     OSSL_TRACE_BEGIN(TLS) {
+         BIO_printf(trc_out, "dec %lu\n", (unsigned long)rr[0].length);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wconversion"
+         BIO_dump_indent(trc_out, rr[0].data, rr[0].length, 4);
++#pragma GCC diagnostic pop
+     } OSSL_TRACE_END(TLS);
+ 
+     /* r->length is now the compressed data plus mac */
+@@ -1026,7 +1151,10 @@ int tls_do_compress(OSSL_RECORD_LAYER *r
+     if (i < 0)
+         return 0;
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+     wr->length = i;
++#pragma GCC diagnostic pop
+     wr->input = wr->data;
+     return 1;
+ #else
+@@ -1050,8 +1178,11 @@ int tls_do_uncompress(OSSL_RECORD_LAYER
+                           rec->data, (int)rec->length);
+     if (i < 0)
+         return 0;
+-    else
+-        rec->length = i;
++    else {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
++        rec->length = i; }
++#pragma GCC diagnostic pop
+     rec->data = rec->comp;
+     return 1;
+ #else
+@@ -1144,7 +1275,10 @@ int tls_read_record(OSSL_RECORD_LAYER *r
+ 
+     *rechandle = rec;
+     *rversion = rec->rec_version;
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wconversion"
+     *type = rec->type;
++#pragma GCC diagnostic pop
+     *data = rec->data + rec->off;
+     *datalen = rec->length;
+     if (rl->isdtls) {
+@@ -1251,7 +1385,12 @@ int
+ tls_int_new_record_layer(OSSL_LIB_CTX *libctx, const char *propq, int vers,
+                          int role, int direction, int level,
+                          const EVP_CIPHER *ciph, size_t taglen,
+-                         const EVP_MD *md, COMP_METHOD *comp, BIO *prev,
++                         const EVP_MD *md,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                         COMP_METHOD *comp,
++#pragma GCC diagnostic pop
++                         BIO *prev,
+                          BIO *transport, BIO *next, const OSSL_PARAM *settings,
+                          const OSSL_PARAM *options,
+                          const OSSL_DISPATCH *fns, void *cbarg,
+@@ -1384,17 +1523,35 @@ tls_int_new_record_layer(OSSL_LIB_CTX *l
+ 
+ static int
+ tls_new_record_layer(OSSL_LIB_CTX *libctx, const char *propq, int vers,
+-                     int role, int direction, int level, uint16_t epoch,
+-                     unsigned char *secret, size_t secretlen,
++                     int role, int direction, int level,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                     uint16_t epoch,
++                     unsigned char *secret,
++                     size_t secretlen,
++#pragma GCC diagnostic pop
+                      unsigned char *key, size_t keylen, unsigned char *iv,
+                      size_t ivlen, unsigned char *mackey, size_t mackeylen,
+                      const EVP_CIPHER *ciph, size_t taglen,
+                      int mactype,
+                      const EVP_MD *md, COMP_METHOD *comp,
+-                     const EVP_MD *kdfdigest, BIO *prev, BIO *transport,
+-                     BIO *next, BIO_ADDR *local, BIO_ADDR *peer,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                     const EVP_MD *kdfdigest,
++#pragma GCC diagnostic pop
++                     BIO *prev, BIO *transport,
++                     BIO *next,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                     BIO_ADDR *local,
++                     BIO_ADDR *peer,
++#pragma GCC diagnostic pop
+                      const OSSL_PARAM *settings, const OSSL_PARAM *options,
+-                     const OSSL_DISPATCH *fns, void *cbarg, void *rlarg,
++                     const OSSL_DISPATCH *fns, void *cbarg,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                     void *rlarg,
++#pragma GCC diagnostic pop
+                      OSSL_RECORD_LAYER **retrl)
+ {
+     int ret;
+@@ -1513,9 +1670,17 @@ size_t tls_app_data_pending(OSSL_RECORD_
+     return num;
+ }
+ 
+-size_t tls_get_max_records_default(OSSL_RECORD_LAYER *rl, uint8_t type,
++size_t tls_get_max_records_default(OSSL_RECORD_LAYER *rl,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                                   uint8_t type,
++#pragma GCC diagnostic pop
+                                    size_t len,
+-                                   size_t maxfrag, size_t *preffrag)
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
++                                   size_t maxfrag,
++#pragma GCC diagnostic pop
++                                   size_t *preffrag)
+ {
+     /*
+      * If we have a pipeline capable cipher, and we have been configured to use
+@@ -1544,11 +1709,14 @@ size_t tls_get_max_records(OSSL_RECORD_L
+     return rl->funcs->get_max_records(rl, type, len, maxfrag, preffrag);
+ }
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
+ int tls_allocate_write_buffers_default(OSSL_RECORD_LAYER *rl,
+                                          OSSL_RECORD_TEMPLATE *templates,
+                                          size_t numtempl,
+                                          size_t *prefix)
+ {
++#pragma GCC diagnostic pop
+     if (!tls_setup_write_buffer(rl, numtempl, 0, 0)) {
+         /* RLAYERfatal() already called */
+         return 0;
+@@ -1560,7 +1728,10 @@ int tls_allocate_write_buffers_default(O
+ int tls_initialise_write_packets_default(OSSL_RECORD_LAYER *rl,
+                                          OSSL_RECORD_TEMPLATE *templates,
+                                          size_t numtempl,
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wunused-parameter"
+                                          OSSL_RECORD_TEMPLATE *prefixtempl,
++#pragma GCC diagnostic pop
+                                          WPACKET *pkt,
+                                          TLS_BUFFER *bufs,
+                                          size_t *wpinited)
+@@ -1798,7 +1969,10 @@ int tls_write_records_default(OSSL_RECOR
+             rectype = thistempl->type;
+ 
+         TLS_RL_RECORD_set_type(thiswr, rectype);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+         TLS_RL_RECORD_set_rec_version(thiswr, thistempl->version);
++#pragma GCC diagnostic pop
+ 
+         if (!rl->funcs->prepare_record_header(rl, thispkt, thistempl, rectype,
+                                               &compressdata)) {
+@@ -1839,14 +2013,20 @@ int tls_write_records_default(OSSL_RECOR
+             goto err;
+         }
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+         if (!rl->funcs->prepare_for_encryption(rl, mac_size, thispkt, thiswr)) {
++#pragma GCC diagnostic pop
+             /* RLAYERfatal() already called */
+             goto err;
+         }
+     }
+ 
+     if (prefix) {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+         if (rl->funcs->cipher(rl, wr, 1, 1, NULL, mac_size) < 1) {
++#pragma GCC diagnostic pop
+             if (rl->alert == SSL_AD_NO_ALERT) {
+                 RLAYERfatal(rl, SSL_AD_INTERNAL_ERROR, ERR_R_INTERNAL_ERROR);
+             }
+@@ -1854,7 +2034,10 @@ int tls_write_records_default(OSSL_RECOR
+         }
+     }
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+     if (rl->funcs->cipher(rl, wr + prefix, numtempl, 1, NULL, mac_size) < 1) {
++#pragma GCC diagnostic pop
+         if (rl->alert == SSL_AD_NO_ALERT) {
+             RLAYERfatal(rl, SSL_AD_INTERNAL_ERROR, ERR_R_INTERNAL_ERROR);
+         }
+@@ -1866,8 +2049,11 @@ int tls_write_records_default(OSSL_RECOR
+         thiswr = &wr[j];
+         thistempl = (j < prefix) ? &prefixtempl : &templates[j - prefix];
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+         if (!rl->funcs->post_encryption_processing(rl, mac_size, thistempl,
+                                                    thispkt, thiswr)) {
++#pragma GCC diagnostic pop
+             /* RLAYERfatal() already called */
+             goto err;
+         }
+@@ -1922,12 +2108,18 @@ int tls_retry_write_records(OSSL_RECORD_
+                 if (ret != OSSL_RECORD_RETURN_SUCCESS)
+                     return ret;
+             }
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+             i = BIO_write(rl->bio, (char *)
+                           &(TLS_BUFFER_get_buf(thiswb)
+                             [TLS_BUFFER_get_offset(thiswb)]),
+                           (unsigned int)TLS_BUFFER_get_left(thiswb));
++#pragma GCC diagnostic pop
+             if (i >= 0) {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wsign-conversion"
+                 tmpwrit = i;
++#pragma GCC diagnostic pop
+                 if (i == 0 && BIO_should_retry(rl->bio))
+                     ret = OSSL_RECORD_RETURN_RETRY;
+                 else
+@@ -2064,7 +2256,10 @@ const COMP_METHOD *tls_get_compression(O
+ 
+ void tls_set_max_frag_len(OSSL_RECORD_LAYER *rl, size_t max_frag_len)
+ {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wconversion"
+     rl->max_frag_len = max_frag_len;
++#pragma GCC diagnostic pop
+     /*
+      * We don't need to adjust buffer sizes. Write buffer sizes are
+      * automatically checked anyway. We should only be changing the read buffer
+diff -upr -- openssl-3.4.1.VANILLA/ssl/record/rec_layer_s3.c openssl-3.4.1/ssl/record/rec_layer_s3.c
+--- openssl-3.4.1.VANILLA/ssl/record/rec_layer_s3.c	2025-02-11 15:29:27.000000000 +0100
++++ openssl-3.4.1/ssl/record/rec_layer_s3.c	2025-03-30 12:50:44.935492414 +0200
+@@ -685,16 +685,20 @@ int ssl3_read_bytes(SSL *ssl, uint8_t ty
+         do {
+             rr = &s->rlayer.tlsrecs[s->rlayer.num_recs];
+ 
++            //printf("!!!!!!! here1\n");
+             ret = HANDLE_RLAYER_READ_RETURN(s,
+                     s->rlayer.rrlmethod->read_record(s->rlayer.rrl,
+                                                      &rr->rechandle,
+                                                      &rr->version, &rr->type,
+                                                      &rr->data, &rr->length,
+                                                      NULL, NULL));
++            //printf("!!!!!!! here2\n");
+             if (ret <= 0) {
++              //printf("!!!!!!! here3\n");
+                 /* SSLfatal() already called if appropriate */
+                 return ret;
+             }
++            //printf("!!!!!!! here4\n");
+             rr->off = 0;
+             s->rlayer.num_recs++;
+         } while (s->rlayer.rrlmethod->processed_read_pending(s->rlayer.rrl)
+diff -upr -- openssl-3.4.1.VANILLA/ssl/ssl_err.c openssl-3.4.1/ssl/ssl_err.c
+--- openssl-3.4.1.VANILLA/ssl/ssl_err.c	2025-02-11 15:29:27.000000000 +0100
++++ openssl-3.4.1/ssl/ssl_err.c	2025-03-30 12:50:44.936040087 +0200
+@@ -19,6 +19,12 @@ static const ERR_STRING_DATA SSL_str_rea
+     "application data after close notify"},
+     {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_APP_DATA_IN_HANDSHAKE),
+     "app data in handshake"},
++    {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER_LESS_THAN_5_BYTES),
++     "you attempted a TLS connection to a non-TLS server which replied with less than 5 bytes"},
++    {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_ATTEMPTED_TLS_CONNECTION_TO_A_PLAINTEXT_HTTP_SERVER),
++     "you attempted a TLS connection to a plaintext HTTP server ie. to a non-TLS server"},
++    {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_ATTEMPTED_TLS_CONNECTION_TO_NON_TLS_SERVER),
++     "you attempted a TLS connection to a non TLS server which is also non HTTP"},
+     {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_ATTEMPT_TO_REUSE_SESSION_IN_DIFFERENT_CONTEXT),
+     "attempt to reuse session in different context"},
+     {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_AT_LEAST_TLS_1_2_NEEDED_IN_SUITEB_MODE),

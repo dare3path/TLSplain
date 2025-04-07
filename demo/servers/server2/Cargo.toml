@@ -1,0 +1,9 @@
+[package]
+name = "server2"
+version = "0.1.0"
+license = "Apache-2.0 OR MIT"
+description = "A demo TLS server for the TLSplain project, showcasing patched OpenSSL errors for the client side(but this is the server)"
+edition = "2021"
+
+[dependencies]
+# No dependencies needed!

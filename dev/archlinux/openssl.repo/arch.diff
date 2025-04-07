@@ -1,0 +1,102 @@
+diff --git a/PKGBUILD b/PKGBUILD
+index 66b2020..87e2b1e 100644
+--- a/PKGBUILD
++++ b/PKGBUILD
+@@ -14,31 +14,84 @@ replaces=('openssl-perl' 'openssl-doc')
+ provides=('libcrypto.so' 'libssl.so')
+ backup=('etc/ssl/openssl.cnf')
+ source=("https://github.com/${pkgname}/${pkgname}/releases/download/${pkgname}-${pkgver}/${pkgname}-${pkgver}.tar.gz"{,.asc}
+-        'ca-dir.patch')
++        'ca-dir.patch'
++        'TLSplain.patch'
++#        '27199.patch'
++        'CMPDIFF','LESSDIFF','RUNDIFF'
++      )
+ sha256sums=('002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3'
+             'SKIP'
+-            '0a32d9ca68e8d985ce0bfef6a4c20b46675e06178cc2d0bf6d91bd6865d648b7')
++            '0a32d9ca68e8d985ce0bfef6a4c20b46675e06178cc2d0bf6d91bd6865d648b7'
++            'SKIP'
++#            'a7a5456851bb2d2a8706015299da0029db813fd48511ab030d0493ffb4cc5c2d'
++            'SKIP','SKIP','SKIP'
++          )
+ validpgpkeys=('EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5'
+               'BA5473A2B0587B07FB27CF2D216094DFD0CB81EF')
+ 
++confeeg() {
++  #export CFLAGS="$CFLAGS -Werror -Wall -Wextra"
++  #export CFLAGS="$CFLAGS -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wuninitialized -Wunused -Wdeprecated"
++  #export CFLAGS="$CFLAGS -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wuninitialized -Wunused -Wdeprecated -Wno-error=sign-conversion -Wno-error=conversion -Wno-error=unused-parameter"
++
++  #XXX: because of -flto=auto, linker will warn about this and #pragma silecing it won't work! so cmdline is needed (might work with just LDFLAGS being set here, not tested; also might work but untested with -fno-strict-aliasing but it's worse to keep this instead of the -Wno-free-nonheap-object if we want to catch other non-false-positive warnings)
++  falsepositivesilencing="-Wno-free-nonheap-object"
++  #skip re-running configure here if it's already ran:
++  local file="configdata.pm"
++  local search_string="$falsepositivesilencing"
++  if grep -q -- "$search_string" "$file"; then
++    echo "!!! skipping running ./Configure, already did it"
++    return
++  fi
++  echo "!!! Running ./Configure for the first time."
++  export CFLAGS="$CFLAGS $falsepositivesilencing"
++
++	./Configure no-tests --prefix=/usr --openssldir=/etc/ssl --libdir=lib \
++		shared enable-ktls enable-ec_nistp_64_gcc_128 linux-${CARCH}
++
++  debugornot="-DDEBUG -UNDEBUG" #enable debug
++  #debugornot="-DNDEBUG -UDEBUG" #disable debug
++  EXTRA_FLAGS="-Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wuninitialized -Wunused -Wdeprecated     -Wno-error=unused-parameter -Wno-error=conversion -Wno-error=sign-conversion $debugornot"
++  sed -i '/ssl\/record\/methods\/libssl-shlib-tls_common\.o: ssl\/record\/methods\/tls_common\.c/{n;s/$/ '"${EXTRA_FLAGS}"'/;}' Makefile
++  sed -i '/ssl\/record\/libssl-lib-rec_layer_s3\.o: ssl\/record\/rec_layer_s3\.c/{n;s/$/ '"${EXTRA_FLAGS}"'/;}' Makefile
++}
++
+ prepare() {
+ 	cd "$srcdir/$pkgname-$pkgver"
+ 
++  echo "Patching..."
+ 	# set ca dir to /etc/ssl by default
+ 	patch -Np1 -i "$srcdir/ca-dir.patch"
++	patch -Np1 -i "$srcdir/TLSplain.patch"
++	#patch -Np1 -i "$srcdir/27199.patch"
++
++  #XXX bad to config here because it doesn't pick up CFLAGS etc. from /etc/makepkg.conf, only when it's in build() it does pick them up! but then any change in a .c file takes 35 sec instead of 5 if the configure was only run here.
++  #confeeg #PERMA, but bad!
++
++
++#  perl util/ck_errf.pl -strict -internal
++#  perl util/mkerr.pl -rebuild -internal -conf crypto/err/openssl.ec
++#  perl util/ck_errf.pl -strict -internal
+ }
+ 
+ build() {
+ 	cd "$srcdir/$pkgname-$pkgver"
+ 
+-	./Configure --prefix=/usr --openssldir=/etc/ssl --libdir=lib \
+-		shared enable-ktls enable-ec_nistp_64_gcc_128 linux-${CARCH}
++  confeeg #XXX: must be here in build() to pick up CFLAGS from /etc/makepkg.conf
++  #but once you ran this once, you can comment it out until you regen the src/openssl.3.4.1/ dir again!
++#exit 1
++
++  #debugornot="-DDEBUG -UNDEBUG"
++  #touch -- "$srcdir/$pkgbase-$pkgver/ssl/record/methods/tls_common.c"
++  #sed -i '/ssl\/record\/methods\/libssl-shlib-tls_common\.o: ssl\/record\/methods\/tls_common\.c/{n;s/$/ '"${debugornot}"'/;}' Makefile
+ 
+ 	make depend
+ 	make
+ }
+ 
+ check() {
++  echo "manual exit"
++  exit 0
+ 	cd "$srcdir/$pkgbase-$pkgver"
+ 
+ 	# the test fails due to missing write permissions in /etc/ssl
+@@ -53,6 +106,8 @@ check() {
+ }
+ 
+ package() {
++  echo "manual exit"
++  exit 0
+ 	cd "$srcdir/$pkgname-$pkgver"
+ 
+ 	make DESTDIR="$pkgdir" MANDIR=/usr/share/man MANSUFFIX=ssl install_sw install_ssldirs install_man_docs

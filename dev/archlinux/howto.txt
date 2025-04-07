@@ -1,0 +1,33 @@
+(untested steps, but should give u an idea)
+
+$ mkdir ~/SOURCE
+$ cd ~/SOURCE
+$ git clone https://gitlab.archlinux.org/archlinux/packaging/packages/openssl.git
+
+that created ./openssl/ dir
+
+this whole thing was tested on this:
+commit e4fd39666b6e0f1dfd8b19be6b456c9d6cf7c0f6 (HEAD -> main, tag: 3.4.1-1, origin/main, origin/HEAD)
+
+$ cd openssl
+$ git checkout e4fd39666b6e0f1dfd8b19be6b456c9d6cf7c0f6
+
+now copy all files/dirs from repo dir's current dir ./openssl.repo/* into your ~/SOURCE/openssl/ dir.
+
+$ patch -p1 -i ./arch.diff
+
+that patched the PKGBUILD
+
+make sure the PKGBUILD refers to this TLSplain patch so that the below ./go_first_time_extract_and_prep command will auto-apply it, or you can apply it manually later then if you ensure PKGBUILD doesn't fail.
+
+$ ./go_first_time_extract_and_prep
+
+this makes ./src/openssl-3.4.1/ dir and all source is prepare() there too.
+
+
+to compile or recompile do:
+$ ./go
+
+then run a server from repo's demo dir
+then run a client from there too, and see the error differences.
+

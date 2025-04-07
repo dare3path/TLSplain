@@ -1,0 +1,5 @@
+#!/usr/bin/bash
+
+time makepkg --noextract --nocheck --skippgpcheck --noarchive
+#--noprepare
+

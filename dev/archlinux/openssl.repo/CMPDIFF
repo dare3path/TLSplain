@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+# Get the current directory name
+current_dir=$(basename "$PWD")
+# Check if the current directory is "src"
+if [ "$current_dir" != "src" ]; then
+    echo "You must be in the 'src' sub-directory."
+    exit 1
+fi
+
+if test -z "$1"; then
+  echo "pass the .patch file like changes.patch, which to compare to the current state"
+  exit 1
+fi
+colordiff -up -- "$1" <(./RUNDIFF) | less -R
+

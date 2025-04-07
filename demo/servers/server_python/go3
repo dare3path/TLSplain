@@ -1,0 +1,79 @@
+#!/usr/bin/bash
+
+# Create a temporary directory
+where="/tmp"
+TEMP_DIR="$(mktemp -d -p "$where")"
+
+# Check if the directory was created successfully
+if [[ ! -d "$TEMP_DIR" ]]; then
+    echo "Failed to create temporary directory."
+    exit 1
+fi
+
+# Original strings
+PREFIX="python3 -m http.server"
+#OPTIONS="--bind 127.0.0.1 --directory /tmp/"
+OPTIONS="--bind 127.0.0.1 --directory "
+
+# Function to escape special characters in a string
+escape_string() {
+    local str="$1"
+    # Escape special characters
+    echo "$str" | sed 's/[.*+?^$|(){}[\]\\]/\\&/g'
+}
+
+# Escape the strings
+ESCAPED_PREFIX=$(escape_string "$PREFIX")
+ESCAPED_OPTIONS=$(escape_string "${OPTIONS}${where}/")
+
+# Combine the escaped strings for pkill
+PATTERN="$ESCAPED_PREFIX.*$ESCAPED_OPTIONS"
+
+# Use the pattern with pkill
+#echo "pkill -f \"$PATTERN\""
+
+servaddr="127.0.0.1"
+servport="3001"
+# Serve the temporary directory in the background
+echo "Serving files from $TEMP_DIR on http://$servaddr:$servport"
+#python3 -m http.server "$servport" --bind "$servaddr" --directory "$TEMP_DIR" &
+$PREFIX "$servport" $OPTIONS "$TEMP_DIR" &
+
+# Get the PID of the last background command (the server)
+SERVER_PID=$!
+
+# Function to clean up on exit
+cleanup() {
+    echo "Stopping server..."
+    #if test -n "$sig"; then
+      #kill $sig "$SERVER_PID"  # Stop the server
+    kill -- "$SERVER_PID"  # Stop the server
+    #true
+    if test "$?" != "0"; then
+      echo "lingering server(s) from prev. runs, killing..."
+      pkill -f -- "$PATTERN"
+      sleep 1
+      pkill -9 -f -- "$PATTERN"
+      if pgrep -f -- "$PATTERN"; then
+        echo " FAILED to kill:"
+        pgrep -a -f -- "$PATTERN"
+      else
+        echo " killed ok."
+      fi
+    else
+      wait "$SERVER_PID"  # Wait for the server to terminate
+    fi
+    #fi
+    #sig="-9"
+    #trap cleanup EXIT
+    #wait "$SERVER_PID"  # Wait for the server to terminate
+    rm -rf "$TEMP_DIR"  # Remove the temporary directory
+    echo "Cleaned up temp dir."
+}
+
+# Trap EXIT signal to run cleanup function
+trap cleanup EXIT
+
+# Wait for the server process to finish
+wait "$SERVER_PID"
+

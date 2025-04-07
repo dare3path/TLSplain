@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+
+gcc -o client client.c -lssl -lcrypto && ./client

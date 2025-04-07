@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+
+# Get the current directory name
+current_dir=$(basename "$PWD")
+# Check if the current directory is "src"
+if [ "$current_dir" != "src" ]; then
+    echo "You must be in the 'src' sub-directory."
+    exit 1
+fi
+
+
+./RUNDIFF | colordiff | less -R
