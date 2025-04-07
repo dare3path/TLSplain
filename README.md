@@ -52,8 +52,8 @@ and
 **Cons**
 - if you've somehow trapped those specific errors before error:0A00010B:SSL and error:0A0000C6:SSL as a way to know if you're connecting to non-TLS server(s) then you'd have to change or add these new ones (depending on the patch), but seen above as: error:0A0007A0:SSL and error:0A00079F:SSL and error:0A0007A1:SSL
 
-Initially I tried to report it here: https://github.com/hyperium/hyper/issues/3866  
-But then I've realized it's in fact openssl at heart and many rust programs can be helped by modding openssl instead.  
+Initially I tried to report it in the wrong place, here: https://github.com/hyperium/hyper/issues/3866  
+But then I've realized it's in fact openssl at heart(now reported [here](https://github.com/openssl/openssl/issues/27293)) and many rust programs can be helped by modding openssl instead.  
 xAI's Grok3 and Grok2 were used as help.  
 
 ## Licensing
