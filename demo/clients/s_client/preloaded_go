@@ -15,8 +15,8 @@ reset_colors() {
     tput sgr0
 }
 trap reset_colors EXIT ERR
-lib1="/home/user/SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
-lib2="/home/user/SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
+lib1=~/"SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
+lib2=~/"SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
 exe="/usr/bin/openssl"
 set -xe
 ls -la -- "${lib1}" "${lib2}" "$exe"
