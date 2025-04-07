@@ -57,7 +57,7 @@ But then I've realized it's in fact openssl at heart(now reported [here](https:/
 xAI's Grok3 and Grok2 were used as help.  
 
 ## Licensing
-The entire `TLSplain` project is licensed under the [Apache License 2.0](LICENSE), matching OpenSSL’s terms. This includes the patch, demo server, and client code.
+The entire `TLSplain` project is licensed under the [Apache License 2.0](LICENSE), matching OpenSSL’s terms. This includes the patches, demo server, and client code.
 
-**Optional MIT License for Demo Code**: The demo(ie. non-patch) files are also available under the [MIT License](LICENSE.mit) at your discretion—feel free to use them under MIT if that suits your needs!
+**Optional MIT License for Demo Code**: The demo files, well anything outside the ./patch/ dir in the repo, are also available under the [MIT License](LICENSE.mit) at your discretion—feel free to use them under MIT if that suits your needs!
 
