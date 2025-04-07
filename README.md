@@ -1,5 +1,7 @@
 # TLSplain
 
+- proof-of-concept openssl patch for clearer errors when TLS clients are hitting non-TLS servers
+
 This repo contains a proof-of-concept patch for openssl, a rust TLS client and a rust non-TLS server.  
 You can run this non-TLS server then try to connect to it via the TLS client and see the failing errors.  
 Without the patch you'd see errors like this:  
