@@ -1,6 +1,8 @@
 #!/usr/bin/bash
 
-echo 'shows current state of modifs'
+echo 'shows current state of modifs' >&2
+echo 'future updates of this patch will be on: https://github.com/dare3path/TLSplain' >&1
+echo >&1
 
 # Get the current directory name
 current_dir=$(basename "$PWD")
