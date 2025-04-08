@@ -43,6 +43,7 @@ fn main() -> std::io::Result<()> {
         "HTTP/1",
         "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n",
         "HTTP/",
+        "<!DOC", // emulates: $ python -m http.server -b 127.0.2.14 3001
     ];
 
     let handles: Vec<_> = responses.into_iter()
