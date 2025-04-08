@@ -2,5 +2,5 @@
 
 lib1=~/"SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
 lib2=~/"SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
-LD_PRELOAD="${lib1}:${lib2}" ./client
+LD_PRELOAD="${lib1}:${lib2}" ./client "$@"
 

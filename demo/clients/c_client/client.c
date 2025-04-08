@@ -10,7 +10,7 @@
 
 #define PORT 3001
 
-int main() {
+int main(int argc, char *argv[]) {
     // Initialize OpenSSL
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
@@ -30,18 +30,34 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // Get last octet from command line or default to 6
+    int last_octet = 6;  // Added default value
+    //printf("argc = %d\n", argc);  // Added debug output for argument count
+    if (argc > 1) {  // Added argument checking
+        last_octet = atoi(argv[1]);  // Added conversion of argument to integer
+        if (last_octet < 0 || last_octet > 255) {  // Added validation
+            printf("Invalid octet value. Must be between 0 and 255\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     // Connect to server
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    //server_addr.sin_addr.s_addr = inet_addr("127.0.2.6");
+    char ip_addr[16];  // Added buffer for IP string
+    snprintf(ip_addr, sizeof(ip_addr), "127.0.2.%d", last_octet);  // Added dynamic IP construction
+    server_addr.sin_addr.s_addr = inet_addr(ip_addr);  // Modified to use dynamic IP
+
+    printf("Connecting to server at %s\n", ip_addr);
 
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("connect failed");
         exit(EXIT_FAILURE);
     }
 
-    printf("Connected to server\n");
+    printf("Connected to server at %s\n", ip_addr);  // Modified to show actual IP used
 
     // Set up SSL
     SSL *ssl = SSL_new(ctx);

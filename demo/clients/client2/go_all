@@ -1,5 +1,0 @@
-#!/usr/bin/bash
-
-for i in {1..12}; do
-  ./preloaded_go 127.0.2.${i}:3001 |& grep -E '(error:0A0007..:SSL|EOF)' | grep --color=always -E -- '(non-TLS|plaintext|EOF)'
-done

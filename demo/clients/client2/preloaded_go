@@ -3,10 +3,15 @@
 lib1=~/"SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
 lib2=~/"SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
 exe="./target/debug/client2"
+if test "$#" -gt 0; then
+  arg="$1"
+else
+  arg="6"
+fi
 set -xe
 cargo build
 ls -la -- "${lib1}" "${lib2}" "$exe"
 export LD_PRELOAD="${lib1}:${lib2}"
 ldd -- "$exe"
-time "$exe" "$@"
+time "$exe" "127.0.2.${arg}:3001"
 

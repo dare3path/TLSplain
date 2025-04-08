@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+
+if test "$#" -gt 0; then
+  arg="$1"
+else
+  arg="6"
+fi
+cargo run -- "127.0.2.${arg}:3001"
