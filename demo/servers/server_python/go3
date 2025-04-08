@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+#this tries to avoid serving the current dir's files so it's a sanitized version of ./go2
+
 # Create a temporary directory
 where="/tmp"
 TEMP_DIR="$(mktemp -d -p "$where")"
@@ -10,10 +12,12 @@ if [[ ! -d "$TEMP_DIR" ]]; then
     exit 1
 fi
 
+servaddr="127.0.2.33"
+servport="3001"
 # Original strings
 PREFIX="python3 -m http.server"
 #OPTIONS="--bind 127.0.0.1 --directory /tmp/"
-OPTIONS="--bind 127.0.0.1 --directory "
+OPTIONS="--bind $servaddr --directory "
 
 # Function to escape special characters in a string
 escape_string() {
@@ -32,8 +36,6 @@ PATTERN="$ESCAPED_PREFIX.*$ESCAPED_OPTIONS"
 # Use the pattern with pkill
 #echo "pkill -f \"$PATTERN\""
 
-servaddr="127.0.0.1"
-servport="3001"
 # Serve the temporary directory in the background
 echo "Serving files from $TEMP_DIR on http://$servaddr:$servport"
 #python3 -m http.server "$servport" --bind "$servaddr" --directory "$TEMP_DIR" &

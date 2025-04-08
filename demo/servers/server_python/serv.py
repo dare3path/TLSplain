@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import socket
 
-HOST = '127.0.0.3'  # Listen on localhost
-PORT = 8000         # Choose a port
+HOST = '127.0.2.31'  # Listen on localhost
+PORT = 3001         # Choose a port
 
 # Define the 5-byte response
 #response = b'HTTP/'
