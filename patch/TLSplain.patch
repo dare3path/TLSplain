@@ -1,4 +1,5 @@
-future updates of this patch will be on: https://github.com/dare3path/TLSplain
+future updates of this patch will be on: https://github.com/dare3path/TLSplain  (tested on archlinux)
+and likely also on https://github.com/dare3path/openssl/tree/better_error_msgs_when_connecting_to_non_TLS_servers (untested)
 
 diff -upr -- openssl-3.4.1.VANILLA/apps/srp.c openssl-3.4.1/apps/srp.c
 diff -upr -- openssl-3.4.1.VANILLA/configdata.pm openssl-3.4.1/configdata.pm
@@ -514,7 +515,7 @@ diff -upr -- openssl-3.4.1.VANILLA/ssl/record/rec_layer_s3.c openssl-3.4.1/ssl/r
          } while (s->rlayer.rrlmethod->processed_read_pending(s->rlayer.rrl)
 diff -upr -- openssl-3.4.1.VANILLA/ssl/ssl_err.c openssl-3.4.1/ssl/ssl_err.c
 --- openssl-3.4.1.VANILLA/ssl/ssl_err.c	2025-02-11 15:29:27.000000000 +0100
-+++ openssl-3.4.1/ssl/ssl_err.c	2025-03-30 12:50:44.936040087 +0200
++++ openssl-3.4.1/crypto/ssl_err.c	2025-03-30 12:50:44.936040087 +0200
 @@ -19,6 +19,12 @@ static const ERR_STRING_DATA SSL_str_rea
      "application data after close notify"},
      {ERR_PACK(ERR_LIB_SSL, 0, SSL_R_APP_DATA_IN_HANDSHAKE),
