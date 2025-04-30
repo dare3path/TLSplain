@@ -1,5 +1,5 @@
 #!/usr/bin/bash
 
-echo "warning: this serves the current dir's files to any connecting client"
+echo "warning: this HTTP-serves the current dir's files to any connecting client"
 python -m http.server -b 127.0.2.32 3001
 

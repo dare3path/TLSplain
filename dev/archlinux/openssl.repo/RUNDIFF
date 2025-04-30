@@ -1,7 +1,8 @@
 #!/usr/bin/bash
 
 echo 'shows current state of modifs' >&2
-echo 'future updates of this patch will be on: https://github.com/dare3path/TLSplain' >&1
+echo 'future updates of this patch will be on: https://github.com/dare3path/TLSplain  (tested on archlinux)' >&1
+echo 'and likely also on https://github.com/dare3path/openssl/tree/better_error_msgs_when_connecting_to_non_TLS_servers (untested)' >&1
 echo >&1
 
 # Get the current directory name
@@ -14,8 +15,9 @@ fi
 
 #$ diff -x 'openssl-3.4.1/Makefile' -x 'openssl-3.4.1/configdata.pm' -uprw openssl-3.4.1.VANILLA  openssl-3.4.1 |grep -v '^Binary files'| grep -v '^Only in' | colordiff|less -R
 
-dir1="openssl-3.4.1.VANILLA"
-dir2="openssl-3.4.1"
+#XXX: the VANILLA dir aka $dir1 doesn't exist unless u manually ran the PKGBUILD via ./go_* script without having applied the TLSplain.patch then renamed the src/$dir2 to src/$dir1
+dir1="openssl-3.5.0.VANILLA"
+dir2="openssl-3.5.0"
 excludes="apps\/srp.c|Makefile|configdata.pm"
 cmd="diff -upr --"
 $cmd "$dir1" "$dir2" | awk '

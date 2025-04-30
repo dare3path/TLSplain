@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+#"EOF" was in 3.4.1
+#"os error 104" is in 3.5.0
 for i in {1..12}; do
-  ./preloaded_go "${i}" |& grep -E '(error:0A0007..:SSL|EOF)' | grep --color=always -E -- '(non-TLS|plaintext|EOF)'
+  ./preloaded_go "${i}" |& grep -E '(error:0A0007..:SSL|EOF|os error 104)' | grep --color=always -E -- '(non-TLS|plaintext|EOF|os error 104|5 bytes|non-HTTP)' && echo "^ that was for 127.0.2.$i\n"
 done
