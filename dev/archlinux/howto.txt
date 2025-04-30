@@ -5,12 +5,13 @@ $ cd ~/SOURCE
 $ git clone https://gitlab.archlinux.org/archlinux/packaging/packages/openssl.git
 
 that created ./openssl/ dir
+so ~/SOURCE/openssl/ is the arch_dir= in ./demo/env.sh in this TLSPlain repo. (you'll want to update env.sh if this path is different)
 
-this whole thing was tested on this:
-commit e4fd39666b6e0f1dfd8b19be6b456c9d6cf7c0f6 (HEAD -> main, tag: 3.4.1-1, origin/main, origin/HEAD)
+this whole thing was tested on this archlinux openssl package commit:
+commit 84b208fde5438cfda9383c54272c57ee31fdf2a4 (HEAD -> main, tag: 3.5.0-1, origin/main, origin/HEAD)
 
 $ cd openssl
-$ git checkout e4fd39666b6e0f1dfd8b19be6b456c9d6cf7c0f6
+$ git checkout 84b208fde5438cfda9383c54272c57ee31fdf2a4
 
 now copy all files/dirs from repo dir's current dir ./openssl.repo/* into your ~/SOURCE/openssl/ dir.
 

@@ -1,24 +1,22 @@
 diff --git a/PKGBUILD b/PKGBUILD
-index 66b2020..87e2b1e 100644
+index c8d9078..d764e12 100644
 --- a/PKGBUILD
 +++ b/PKGBUILD
-@@ -14,31 +14,84 @@ replaces=('openssl-perl' 'openssl-doc')
+@@ -14,31 +14,83 @@ replaces=('openssl-perl' 'openssl-doc')
  provides=('libcrypto.so' 'libssl.so')
  backup=('etc/ssl/openssl.cnf')
  source=("https://github.com/${pkgname}/${pkgname}/releases/download/${pkgname}-${pkgver}/${pkgname}-${pkgver}.tar.gz"{,.asc}
 -        'ca-dir.patch')
 +        'ca-dir.patch'
 +        'TLSplain.patch'
-+#        '27199.patch'
-+        'CMPDIFF','LESSDIFF','RUNDIFF'
++        'CMPDIFF' 'LESSDIFF' 'RUNDIFF'
 +      )
- sha256sums=('002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3'
+ sha256sums=('344d0a79f1a9b08029b0744e2cc401a43f9c90acd1044d09a530b4885a8e9fc0'
              'SKIP'
 -            '0a32d9ca68e8d985ce0bfef6a4c20b46675e06178cc2d0bf6d91bd6865d648b7')
 +            '0a32d9ca68e8d985ce0bfef6a4c20b46675e06178cc2d0bf6d91bd6865d648b7'
 +            'SKIP'
-+#            'a7a5456851bb2d2a8706015299da0029db813fd48511ab030d0493ffb4cc5c2d'
-+            'SKIP','SKIP','SKIP'
++            'SKIP' 'SKIP' 'SKIP'
 +          )
  validpgpkeys=('EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5'
                'BA5473A2B0587B07FB27CF2D216094DFD0CB81EF')
@@ -57,8 +55,6 @@ index 66b2020..87e2b1e 100644
  	# set ca dir to /etc/ssl by default
  	patch -Np1 -i "$srcdir/ca-dir.patch"
 +	patch -Np1 -i "$srcdir/TLSplain.patch"
-+	#patch -Np1 -i "$srcdir/27199.patch"
-+
 +  #XXX bad to config here because it doesn't pick up CFLAGS etc. from /etc/makepkg.conf, only when it's in build() it does pick them up! but then any change in a .c file takes 35 sec instead of 5 if the configure was only run here.
 +  #confeeg #PERMA, but bad!
 +
@@ -73,6 +69,9 @@ index 66b2020..87e2b1e 100644
  
 -	./Configure --prefix=/usr --openssldir=/etc/ssl --libdir=lib \
 -		shared enable-ktls enable-ec_nistp_64_gcc_128 linux-${CARCH}
++#	./Configure --prefix=/usr --openssldir=/etc/ssl --libdir=lib \
++#		shared enable-ktls enable-ec_nistp_64_gcc_128 linux-${CARCH}
++
 +  confeeg #XXX: must be here in build() to pick up CFLAGS from /etc/makepkg.conf
 +  #but once you ran this once, you can comment it out until you regen the src/openssl.3.4.1/ dir again!
 +#exit 1
@@ -91,7 +90,7 @@ index 66b2020..87e2b1e 100644
  	cd "$srcdir/$pkgbase-$pkgver"
  
  	# the test fails due to missing write permissions in /etc/ssl
-@@ -53,6 +106,8 @@ check() {
+@@ -53,6 +105,8 @@ check() {
  }
  
  package() {

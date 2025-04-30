@@ -1,3 +1,4 @@
 #!/usr/bin/bash
 
+echo "non-HTTP, non-TLS server"
 python ./serv.py

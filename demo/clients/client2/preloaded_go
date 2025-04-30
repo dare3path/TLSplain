@@ -1,7 +1,10 @@
 #!/usr/bin/bash
 
-lib1=~/"SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
-lib2=~/"SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
+set -ex
+source ../../env.sh
+#lib1=~/"SOURCE/openssl/src/openssl-3.4.1/libcrypto.so.3"
+#lib2=~/"SOURCE/openssl/src/openssl-3.4.1/libssl.so.3"
+set +ex
 exe="./target/debug/client2"
 if test "$#" -gt 0; then
   arg="$1"
